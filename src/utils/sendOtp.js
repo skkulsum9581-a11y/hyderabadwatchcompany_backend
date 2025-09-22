@@ -56,4 +56,4 @@
     }
     };
 
-    
+    sendOTPEmail("shaikhfaqruddin1000@gmail.com",840329)

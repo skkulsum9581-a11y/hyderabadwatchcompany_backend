@@ -10,8 +10,8 @@ import { sendOTPEmail } from "../utils/sendOtp.js";
 import { Watch } from "../models/watches.model.js";
 
 const addWatch = asyncHandler(async (req, res) => {
-  const { title, price, description_short, description_long, brand, forWhom, category, discounted_price } = req.body
-  if ([title, price, description_long, description_short, brand, forWhom, category, discounted_price].some((field) => field.trim() === "")) throw new ApiError(401, "please enter all the fields")
+  const { title, price, description, brand, forWhom, category, discounted_price } = req.body
+  if ([title, price, description, brand, forWhom, category, discounted_price].some((field) => field.trim() === "")) throw new ApiError(401, "please enter all the fields")
   // console.log({title,price,description_short,description_long,brand,forWhom,category})
 
 
@@ -59,8 +59,7 @@ const addWatch = asyncHandler(async (req, res) => {
     title: title,
     price: price,
     discounted_price: discounted_price,
-    description_short: description_short,
-    description_long: description_long,
+    description: description,
     brand: brand,
     category: category,
     forWhom: forWhom,

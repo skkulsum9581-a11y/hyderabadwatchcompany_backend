@@ -7,7 +7,7 @@ const watchSchema = new mongoose.Schema({
         unique:true
     },
     discounted_price:{
-        type:String,
+        type:Number,
         required:true,
         
 
@@ -17,11 +17,8 @@ const watchSchema = new mongoose.Schema({
         type:Number,
         required:true,
     },
-    description_short:{
-        type:String,
-        required:true
-    },
-      description_long:{
+   
+      description:{
         type:String,
         required:true
     },
