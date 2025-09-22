@@ -27,13 +27,7 @@ app.use(express.urlencoded({extended:true,limit:"16kb"}))
 app.use(express.static("public"))
 app.use(cookieParser())
 
-const sayhello=async (req,res)=>{
-    res.status(200).json({message:"hello from me"})
 
-
-}
-
-app.get("/",sayhello)
 
 // routes
 import userRouter from './routes/user.routes.js'
