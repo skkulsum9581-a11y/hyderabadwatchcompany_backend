@@ -168,7 +168,7 @@ const getUserWishlist = async (req, res) => {
     }
 
     const wishlist = await Watch.find({ _id: { $in: user_db.wishlist } })
-      .select("title price description_short images"); // ✅ only selected fields
+      .select("title price description images"); // ✅ only selected fields
     console.log(wishlist)
 
 
