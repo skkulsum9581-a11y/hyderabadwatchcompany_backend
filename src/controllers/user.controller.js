@@ -29,8 +29,8 @@ const generateAccessAndRefreshTokens = async (userId) => {
 }
 
 const registerUser = asyncHandler(async (req, res) => {
-    const { email, name, password, phone_no } = req.body
-    if ([email, name, password, phone_no].some((field) => field.trim() === "")) {
+    const { email, name, password } = req.body
+    if ([email, name, password].some((field) => !field || field.trim() === "")) {
         throw new ApiError(400, "all fields are mandetory")
     }
 
@@ -59,7 +59,7 @@ const registerUser = asyncHandler(async (req, res) => {
         email: email,
         name: name,
         password: password,
-        phone_no: phone_no,
+        verified:true,
         avatar: cloudinaryResponse || ""
 
     })
@@ -319,7 +319,8 @@ const otp = asyncHandler(async (req, res) => {
         // db_user.address=address_
         // await db_user.save()
         // const diff_db_user= await User.findById(req.user?._id).select("-password -refreshToken")
-        const user_email = req?.user?.email
+        const {user_email} = req.body
+        console.log(user_email)
         const otp_ = generateOTP()
         const now= new Date()
         const expiry_ = new Date(now.getTime() + 5 * 60 * 1000);
@@ -336,43 +337,28 @@ const otp = asyncHandler(async (req, res) => {
 })
 
 const otpVerify = asyncHandler(async (req, res) => {
-    try {
-        console.log("starting of the function")
-        const { otp_ } = req.body
-        // console.log(Newemail)
-        if (otp_.trim() === "") throw new ApiError(400, "provided an empty otp")
-        console.log("good so far")
+    const { otp_, email } = req.body;
 
-        const user_email= req.user?.email
-        const verify= await Verification.findOne({
-            email:user_email,
-            otp:otp_
-        })
+    // Validate input
+    if (!otp_ || otp_.trim() === "") throw new ApiError(400, "provided an empty otp");
+    if (!email || email.trim() === "") throw new ApiError(400, "provided an empty email");
 
-       if(!verify) throw new ApiError(402,"invalid otp code ")
-        const now = new Date()
-        if(verify.expiry<now){
-            throw new ApiError(405,"the otp has expired")
-        }
+    // Find OTP
+    const verify = await Verification.findOne({ email, otp: otp_ });
+    if (!verify) throw new ApiError(402, "invalid otp code");
 
-        try {
-            await Verification.deleteMany({email:user_email})
-        } catch (error) {
-            throw new ApiError(201,"failed to delete all the otp entries corresponding to the email")
-        }
+    // Check expiry
+    if (verify.expiry < new Date()) throw new ApiError(405, "the otp has expired");
 
-        const db_user= await User.findOne({email:user_email})
-        db_user.verified=true
-        await db_user.save()
+    // Delete all OTPs for this email
+    await Verification.deleteMany({ email });
 
-        return res
-            .status(200)
-            .json(new apiResponse(200, { db_user}, "successfully verified the user"))
-    } catch (error) {
-        throw new ApiError(500, error.message || "unsuccessful verificaion of the user email")
-    }
+    // Success response
+    return res.status(200).json(
+        new apiResponse(200, { email, verified:true}, "successfully verified the user")
+    );
+});
 
-})
 
 const isLoggedIn = asyncHandler(async (req, res) => {
     try {
@@ -393,9 +379,19 @@ const isLoggedIn = asyncHandler(async (req, res) => {
 })
 
 
+// this is useless
+const emailRegisteration = asyncHandler( async(req,res)=>{
+    const {email}= req.body
+    console.log(email)
+    res.status(200)
+    .json(new apiResponse(200,{message:"ok"},"successfully registered the email"))
+})
+
+
 
 
 export {
     registerUser, loginUser, logoutUser, refreshAccessToken, updatePassword,
-    forgotPassword, updateEmail, updateName, updateAddress, updatePhoneNumber, updateAvatar,otp , otpVerify, isLoggedIn
+    forgotPassword, updateEmail, updateName, updateAddress, updatePhoneNumber, updateAvatar,otp , 
+    otpVerify, isLoggedIn, emailRegisteration
 }

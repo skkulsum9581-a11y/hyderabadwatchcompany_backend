@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema({
     },
     avatar: {
         type: String,
-        default: "",
+        default: "https://res.cloudinary.com/dpscqelpx/image/upload/v1758695793/ChatGPT_Image_Sep_24_2025_12_05_57_PM_pun3my.png",
     },
     phone_no: {
         type: String,
