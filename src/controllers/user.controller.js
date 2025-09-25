@@ -100,7 +100,7 @@ const loginUser = asyncHandler(async (req, res) => {
     verification_user.refreshToken = refreshToken
     await verification_user.save()
     const logedInUser = await User.findById(verification_user._id).select("-password -refreshToken")
-    const options = { httpsOnly: true, secure: true,sameSite:"None" }
+    const options = { httpOnly: true, secure: true,sameSite:"None" }
     res.status(207)
         .cookie("refreshToken", refreshToken, options)
         .cookie("accessToken", accessToken, options)
@@ -159,6 +159,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 
 })
 
+
+// this is when user is already logged in 
 const updatePassword = asyncHandler(async (req, res) => {
     try {
         const { newPassword, oldPassword } = req.body
@@ -180,9 +182,21 @@ const updatePassword = asyncHandler(async (req, res) => {
 
 })
 
-const forgotPassword = asyncHandler(async (req, res) => {
+// this is when the user forgets the password and he is not logged in
+const setNewPassword = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
 
-})
+    const db_user = await User.findOne({ email });
+    if (!db_user) throw new ApiError(404, "The user does not exist");
+
+    // Update password directly on the document
+    db_user.password = password;
+
+    // Save the document so pre-save middleware hashes it
+    await db_user.save();
+
+    res.status(200).json( new apiResponse(200,{success:true}));
+});
 
 const updateEmail = asyncHandler(async (req, res) => {
     try {
@@ -251,10 +265,10 @@ const updatePhoneNumber = asyncHandler(async (req, res) => {
 
 })
 
-const updateAddress = asyncHandler(async (req, res) => {
+const updateAddressAndPhone = asyncHandler(async (req, res) => {
     try {
         console.log("starting of the function")
-        const { address_ } = req.body
+        const { address_, phone_ } = req.body
         // console.log(Newemail)
         if (address_.trim() === "") throw new ApiError(400, "provided an empty address")
         console.log("good so far")
@@ -262,6 +276,7 @@ const updateAddress = asyncHandler(async (req, res) => {
         if (!db_user) throw new ApiError(405, "unauthorized request .. ")
         console.log(db_user)
         db_user.address = address_
+        db_user.phone_no=phone_
         await db_user.save()
         const diff_db_user = await User.findById(req.user?._id).select("-password -refreshToken")
         return res
@@ -336,6 +351,28 @@ const otp = asyncHandler(async (req, res) => {
 
 })
 
+const otpForgotPassword = asyncHandler(async (req, res) => {
+    try {
+       
+        const {user_email} = req.body
+        console.log(user_email)
+        const db_user = await User.findOne({email:user_email})
+        if(!db_user) throw new ApiError(401,"user is not found")
+        const otp_ = generateOTP()
+        const now= new Date()
+        const expiry_ = new Date(now.getTime() + 5 * 60 * 1000);
+        await Verification.create({ email: user_email, otp: otp_, expiry: expiry_ })
+        sendOTPEmail(user_email,otp_)
+
+        return res
+            .status(200)
+            .json(new apiResponse(200, { }, "otp sent successfully"))
+    } catch (error) {
+        throw new ApiError(500, error.message || "unable to send otp")
+    }
+
+})
+
 const otpVerify = asyncHandler(async (req, res) => {
     const { otp_, email } = req.body;
 
@@ -392,6 +429,6 @@ const emailRegisteration = asyncHandler( async(req,res)=>{
 
 export {
     registerUser, loginUser, logoutUser, refreshAccessToken, updatePassword,
-    forgotPassword, updateEmail, updateName, updateAddress, updatePhoneNumber, updateAvatar,otp , 
-    otpVerify, isLoggedIn, emailRegisteration
+    updateEmail, updateName, updateAddressAndPhone, updatePhoneNumber, updateAvatar,otp , 
+    otpVerify, isLoggedIn, emailRegisteration,otpForgotPassword,setNewPassword
 }
