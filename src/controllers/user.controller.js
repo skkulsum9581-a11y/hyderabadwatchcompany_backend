@@ -101,7 +101,13 @@ const loginUser = asyncHandler(async (req, res) => {
     verification_user.refreshToken = refreshToken
     await verification_user.save()
     const logedInUser = await User.findById(verification_user._id).select("-password -refreshToken")
-    const options = { httpOnly: true, secure: true, sameSite: "none" }
+    const options = {
+        httpOnly: true,              // secure against JS access
+        secure: true,                // required for HTTPS and iOS Safari
+        sameSite: "None",            // allow cross-site (frontend <-> backend)
+        domain: ".hyderabadwatchcompany.shop",  // leading dot allows subdomain + root
+        path: "/",                   // available everywhere
+    };
     res.status(207)
         .cookie("refreshToken", refreshToken, options)
         .cookie("accessToken", accessToken, options)
@@ -426,11 +432,11 @@ const emailRegisteration = asyncHandler(async (req, res) => {
 })
 
 const paymentScreenShort = asyncHandler(async (req, res) => {
-   
-     const db_user = await User.findById(req.user?._id)
+
+    const db_user = await User.findById(req.user?._id)
     if (!db_user) throw new ApiError(405, "unauthorized request .. ")
-    
-    const {total_amount}= req.body
+
+    const { total_amount } = req.body
 
     let cloudinaryResponse = ""
 
@@ -443,25 +449,25 @@ const paymentScreenShort = asyncHandler(async (req, res) => {
     }
     console.log("this is response of cloudinary upload", cloudinaryResponse)
 
-    if(cloudinaryResponse=="") throw new ApiError(501,"the screenshot was not uploaded on cloudinary")
-    if(db_user.verified==false) throw new ApiError(403, "the user is not verified")
-    
-    const paymentEntry= await Payment.create({
-        user_id:db_user._id,
-        name:db_user.name,
-        email:db_user.email,
-        payment_screenshot:cloudinaryResponse,
-        address:db_user.address,
-        phone:db_user.phone_no,
-        amount:total_amount,
-        payment_cart:db_user.cart
+    if (cloudinaryResponse == "") throw new ApiError(501, "the screenshot was not uploaded on cloudinary")
+    if (db_user.verified == false) throw new ApiError(403, "the user is not verified")
+
+    const paymentEntry = await Payment.create({
+        user_id: db_user._id,
+        name: db_user.name,
+        email: db_user.email,
+        payment_screenshot: cloudinaryResponse,
+        address: db_user.address,
+        phone: db_user.phone_no,
+        amount: total_amount,
+        payment_cart: db_user.cart
 
     })
 
     const confirm_paymentEntry = await Payment.findById(paymentEntry._id)
-    if(!confirm_paymentEntry) throw new ApiError(500,"the payment entry was not saved in the database")
+    if (!confirm_paymentEntry) throw new ApiError(500, "the payment entry was not saved in the database")
 
-    res.status(200).json(new apiResponse(200,{confirm_paymentEntry},"successfully saved your payment information"))
+    res.status(200).json(new apiResponse(200, { confirm_paymentEntry }, "successfully saved your payment information"))
 
 
 })
