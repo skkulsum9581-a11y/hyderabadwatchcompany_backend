@@ -101,7 +101,7 @@ const loginUser = asyncHandler(async (req, res) => {
     verification_user.refreshToken = refreshToken
     await verification_user.save()
     const logedInUser = await User.findById(verification_user._id).select("-password -refreshToken")
-    const options = { httpOnly: true, secure: false, sameSite: "Lax" }
+    const options = { httpOnly: true, secure: true, sameSite: "none" }
     res.status(207)
         .cookie("refreshToken", refreshToken, options)
         .cookie("accessToken", accessToken, options)
