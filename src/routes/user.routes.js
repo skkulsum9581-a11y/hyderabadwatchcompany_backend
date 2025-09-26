@@ -1,5 +1,5 @@
 import {Router} from 'express'
-import { emailRegisteration, isLoggedIn, loginUser, logoutUser, otp, otpForgotPassword, otpVerify, refreshAccessToken, registerUser, setNewPassword, updateAddressAndPhone, updateAvatar, updateEmail, updateName, updatePassword, updatePhoneNumber } from '../controllers/user.controller.js'
+import { emailRegisteration, isLoggedIn, loginUser, logoutUser, otp, otpForgotPassword, otpVerify, paymentScreenShort, refreshAccessToken, registerUser, setNewPassword, updateAddressAndPhone, updateAvatar, updateEmail, updateName, updatePassword, updatePhoneNumber } from '../controllers/user.controller.js'
 import { upload } from '../middlewares/multer.middleware.js'
 import { verifyJWT } from '../middlewares/auth.middleware.js'
 
@@ -17,6 +17,9 @@ router.route("/update-password").post(upload.fields([]),verifyJWT,updatePassword
 
 // below route is when the user has forgot the password and he is not logged in
 router.route("/set-new-password").post(upload.fields([]),setNewPassword)
+
+//taking the payment screenshot from the user
+router.route("/payment-screenshot").post(verifyJWT,upload.fields([{name:"paymentScreenshot",maxCount:1}]),paymentScreenShort)
 
 router.route("/update-email").post(upload.fields([]),verifyJWT,updateEmail)
 router.route("/update-name").post(upload.fields([]),verifyJWT,updateName)

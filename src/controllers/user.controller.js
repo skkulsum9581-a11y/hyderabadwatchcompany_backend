@@ -7,6 +7,7 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv"
 import Verification from "../models/verification.model.js";
 import { sendOTPEmail } from "../utils/sendOtp.js";
+import { Payment } from "../models/payment.model.js";
 dotenv.config()
 
 function generateOTP() {
@@ -59,7 +60,7 @@ const registerUser = asyncHandler(async (req, res) => {
         email: email,
         name: name,
         password: password,
-        verified:true,
+        verified: true,
         avatar: cloudinaryResponse || ""
 
     })
@@ -100,7 +101,7 @@ const loginUser = asyncHandler(async (req, res) => {
     verification_user.refreshToken = refreshToken
     await verification_user.save()
     const logedInUser = await User.findById(verification_user._id).select("-password -refreshToken")
-    const options = { httpOnly: true, secure: true,sameSite:"None" }
+    const options = { httpOnly: true, secure: false, sameSite: "Lax" }
     res.status(207)
         .cookie("refreshToken", refreshToken, options)
         .cookie("accessToken", accessToken, options)
@@ -195,7 +196,7 @@ const setNewPassword = asyncHandler(async (req, res) => {
     // Save the document so pre-save middleware hashes it
     await db_user.save();
 
-    res.status(200).json( new apiResponse(200,{success:true}));
+    res.status(200).json(new apiResponse(200, { success: true }));
 });
 
 const updateEmail = asyncHandler(async (req, res) => {
@@ -209,7 +210,7 @@ const updateEmail = asyncHandler(async (req, res) => {
         if (!db_user) throw new ApiError(405, "unauthorized request .. ")
         console.log(db_user)
         db_user.email = Newemail
-        db_user.verified=false
+        db_user.verified = false
         await db_user.save()
         const diff_db_user = await User.findById(req.user?._id).select("-password -refreshToken")
         return res
@@ -276,7 +277,7 @@ const updateAddressAndPhone = asyncHandler(async (req, res) => {
         if (!db_user) throw new ApiError(405, "unauthorized request .. ")
         console.log(db_user)
         db_user.address = address_
-        db_user.phone_no=phone_
+        db_user.phone_no = phone_
         await db_user.save()
         const diff_db_user = await User.findById(req.user?._id).select("-password -refreshToken")
         return res
@@ -334,17 +335,17 @@ const otp = asyncHandler(async (req, res) => {
         // db_user.address=address_
         // await db_user.save()
         // const diff_db_user= await User.findById(req.user?._id).select("-password -refreshToken")
-        const {user_email} = req.body
+        const { user_email } = req.body
         console.log(user_email)
         const otp_ = generateOTP()
-        const now= new Date()
+        const now = new Date()
         const expiry_ = new Date(now.getTime() + 5 * 60 * 1000);
         await Verification.create({ email: user_email, otp: otp_, expiry: expiry_ })
-        sendOTPEmail(user_email,otp_)
+        sendOTPEmail(user_email, otp_)
 
         return res
             .status(200)
-            .json(new apiResponse(200, { }, "otp sent successfully"))
+            .json(new apiResponse(200, {}, "otp sent successfully"))
     } catch (error) {
         throw new ApiError(500, error.message || "unable to send otp")
     }
@@ -353,20 +354,20 @@ const otp = asyncHandler(async (req, res) => {
 
 const otpForgotPassword = asyncHandler(async (req, res) => {
     try {
-       
-        const {user_email} = req.body
+
+        const { user_email } = req.body
         console.log(user_email)
-        const db_user = await User.findOne({email:user_email})
-        if(!db_user) throw new ApiError(401,"user is not found")
+        const db_user = await User.findOne({ email: user_email })
+        if (!db_user) throw new ApiError(401, "user is not found")
         const otp_ = generateOTP()
-        const now= new Date()
+        const now = new Date()
         const expiry_ = new Date(now.getTime() + 5 * 60 * 1000);
         await Verification.create({ email: user_email, otp: otp_, expiry: expiry_ })
-        sendOTPEmail(user_email,otp_)
+        sendOTPEmail(user_email, otp_)
 
         return res
             .status(200)
-            .json(new apiResponse(200, { }, "otp sent successfully"))
+            .json(new apiResponse(200, {}, "otp sent successfully"))
     } catch (error) {
         throw new ApiError(500, error.message || "unable to send otp")
     }
@@ -392,22 +393,22 @@ const otpVerify = asyncHandler(async (req, res) => {
 
     // Success response
     return res.status(200).json(
-        new apiResponse(200, { email, verified:true}, "successfully verified the user")
+        new apiResponse(200, { email, verified: true }, "successfully verified the user")
     );
 });
 
 
 const isLoggedIn = asyncHandler(async (req, res) => {
     try {
-      
+
         const db_user = await User.findById(req.user?._id)
         if (!db_user) throw new ApiError(405, "unauthorized request .. ")
         console.log(db_user)
-        const flag=true
-       
+        const flag = true
+
         return res
             .status(200)
-            .json(new apiResponse(200, { verify:flag }, "successfully updated the email"))
+            .json(new apiResponse(200, { verify: flag }, "successfully updated the email"))
     } catch (error) {
         throw new ApiError(500, error.message || "something went wrong while updating the email")
     }
@@ -416,12 +417,53 @@ const isLoggedIn = asyncHandler(async (req, res) => {
 })
 
 
-// this is useless
-const emailRegisteration = asyncHandler( async(req,res)=>{
-    const {email}= req.body
+// this is useless 
+const emailRegisteration = asyncHandler(async (req, res) => {
+    const { email } = req.body
     console.log(email)
     res.status(200)
-    .json(new apiResponse(200,{message:"ok"},"successfully registered the email"))
+        .json(new apiResponse(200, { message: "ok" }, "successfully registered the email"))
+})
+
+const paymentScreenShort = asyncHandler(async (req, res) => {
+   
+     const db_user = await User.findById(req.user?._id)
+    if (!db_user) throw new ApiError(405, "unauthorized request .. ")
+    
+    const {total_amount}= req.body
+
+    let cloudinaryResponse = ""
+
+    if ((req?.files?.paymentScreenshot?.length)) {
+        const filePath = req.files?.paymentScreenshot[0]?.path
+        console.log(filePath)
+        const response = await uploadOnCloudinary(filePath)
+        if (!response) throw new ApiError(501, "the file wasnt uploaded on cloudinary")
+        cloudinaryResponse = response
+    }
+    console.log("this is response of cloudinary upload", cloudinaryResponse)
+
+    if(cloudinaryResponse=="") throw new ApiError(501,"the screenshot was not uploaded on cloudinary")
+    if(db_user.verified==false) throw new ApiError(403, "the user is not verified")
+    
+    const paymentEntry= await Payment.create({
+        user_id:db_user._id,
+        name:db_user.name,
+        email:db_user.email,
+        payment_screenshot:cloudinaryResponse,
+        address:db_user.address,
+        phone:db_user.phone_no,
+        amount:total_amount,
+        payment_cart:db_user.cart
+
+    })
+
+    const confirm_paymentEntry = await Payment.findById(paymentEntry._id)
+    if(!confirm_paymentEntry) throw new ApiError(500,"the payment entry was not saved in the database")
+
+    res.status(200).json(new apiResponse(200,{confirm_paymentEntry},"successfully saved your payment information"))
+
+
 })
 
 
@@ -429,6 +471,6 @@ const emailRegisteration = asyncHandler( async(req,res)=>{
 
 export {
     registerUser, loginUser, logoutUser, refreshAccessToken, updatePassword,
-    updateEmail, updateName, updateAddressAndPhone, updatePhoneNumber, updateAvatar,otp , 
-    otpVerify, isLoggedIn, emailRegisteration,otpForgotPassword,setNewPassword
+    updateEmail, updateName, updateAddressAndPhone, updatePhoneNumber, updateAvatar, otp,
+    otpVerify, isLoggedIn, emailRegisteration, otpForgotPassword, setNewPassword, paymentScreenShort
 }
