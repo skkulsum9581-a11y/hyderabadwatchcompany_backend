@@ -96,6 +96,61 @@ const singleWatchInformation = asyncHandler(async (req, res) => {
     .json(new apiResponse(200, activeWatch, "you have received the single watch infromation"));
 });
 
+const searchWatch= asyncHandler(async (req, res) => {
+  const userText = req.params.userText;
+
+  if (!userText || userText.trim() === "") {
+    throw new ApiError(400, "Please provide a search query");
+  }
+
+  // Split user input into words
+  const userWords = userText.trim().split(/\s+/);
+
+  // Create regex for each word (case-insensitive)
+  const regexes = userWords.map(word => new RegExp(word, "i"));
+
+  // Search watches where at least one word matches in title, brand, category, or description
+  const watches = await Watch.find({
+    $or: [
+      { title: { $in: regexes } },
+      { brand: { $in: regexes } },
+      { category: { $in: regexes } },
+      { description: { $in: regexes } },
+    ],
+  });
+
+  res.status(200).json(
+    new apiResponse(200,{status: "success",
+    results: watches.length,
+    data: watches,},"success")
+  );
+});
+
+const fetchWatchesByCategory= asyncHandler(async (req,res)=>{
+  const { category, gender } = req.params; // destructure both params
+
+  if (!category || !gender) {
+    throw new ApiError(400, "Both category and gender parameters are required");
+  }
+
+  // Fetch watches matching both category and gender
+  const watches = await Watch.find({ category, forWhom: gender });
+
+  if (!watches || watches.length === 0) {
+    return res.status(200).json({
+      status: "success",
+      data: [],
+      message: `No watches found for category: ${category} and gender: ${gender}`,
+    });
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: watches,
+    message: `Watches fetched for category: ${category} and gender: ${gender}`,
+  });
+})
+
 
 
 
@@ -273,7 +328,7 @@ const getUserCart = asyncHandler(async (req, res) => {
 
 export {
   addWatch, getAllWatches, addWatchToWishList, removeWatchFromWishList, getUserWishlist,
-  singleWatchInformation, addToUserCart, removeFromUserCart, getUserCart
+  singleWatchInformation, addToUserCart, removeFromUserCart, getUserCart, searchWatch, fetchWatchesByCategory
 }
 // controllers needed for
 

@@ -2,7 +2,7 @@ import {Router} from 'express'
 
 import { upload } from '../middlewares/multer.middleware.js'
 import { verifyJWT } from '../middlewares/auth.middleware.js'
-import { addToUserCart, addWatch, addWatchToWishList, getAllWatches, getUserCart, getUserWishlist, removeFromUserCart, removeWatchFromWishList, singleWatchInformation } from '../controllers/watch.controller.js'
+import { addToUserCart, addWatch, addWatchToWishList, fetchWatchesByCategory, getAllWatches, getUserCart, getUserWishlist, removeFromUserCart, removeWatchFromWishList, searchWatch, singleWatchInformation } from '../controllers/watch.controller.js'
 
 const router = Router()
 
@@ -10,6 +10,8 @@ const router = Router()
 router.route("/add-watch").post(upload.array("media",5),addWatch)
 router.route("/get-all-watches").get(getAllWatches)
 router.route("/single-watch-information/:watchid").get(singleWatchInformation) 
+router.route("/search-watch/:userText").post(searchWatch) 
+router.route("/fetch-watches-by-category/:category/:gender").post(fetchWatchesByCategory) 
 
 //handling user wishlish
 router.route("/add-watch-to-wishlist/:watchid").post(verifyJWT,addWatchToWishList)   // this is how params are received
